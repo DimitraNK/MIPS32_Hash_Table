@@ -1,0 +1,249 @@
+
+				.text
+				.globl start
+start:			lw	$t0, N 	#final int N=10;
+				li	$t1, 0	#int keys = 0;
+run:	
+				li	$t2, 0	#int key = 0;
+				li	$t3, 0	#int pos = 0;
+				li	$t4, 0  #int choice = 0;
+				li	$t5, 0	#int telos = 0;
+
+				li	$s0, 0	# i=0;
+				li	$s1, 0	# table's index
+for1: 			bge	$s0, $t0, end_for1	#if i >= N goto end_for1
+				sw	$zero, hash($s1)	#hash[i] = 0;
+				addi	$s0, $s0, 1		#i++
+				addi	$s1, $s1, 4	
+				j for1	# jump to for1
+
+end_for1:	
+do:             la	 $a0, Menu	# println(" Menu");
+                li	 $v0,4
+                syscall
+				la	 $a0, C1	# println("1.Insert Key");	
+                li 	$v0, 4
+                syscall
+                la 	$a0, C2		# println("2.Find Key");
+                li 	$v0, 4
+                syscall
+                la	 $a0, C3 	# println("3.Display Hash Table");
+                li 	$v0, 4
+                syscall
+                la 	$a0, C4 	# println("4.Exit");
+                li 	$v0, 4
+                syscall
+				# choice = readInt("\nChoice?");
+                la 	$a0, EndMenu	# print "choice"
+                li 	$v0, 4
+				syscall
+				li 	$v0, 5	# read an integer
+				syscall
+				move 	$t4, $v0	# $t4 = choice	
+				li 	$s0, 1
+
+if1:			bne $t4, $s0, if2	# if (choice != 1) goto if2
+				#key = readInt ("Give new key (greater than zero):");
+				la 	$a0, if1_a	# print "Give new key (greater than zero):"
+                li 	$v0, 4
+                syscall
+				li 	$v0, 5		# read an integer
+				syscall
+				move 	$t2, $v0	# $t2 = key	
+if_if1:			blez $t2, else_if1	# if (key<=0) goto else_if1
+				li	 $s1, 0
+				move	$a0, $s1	# sending arguments to insertkey function
+				move	$a1, $t2	
+				jal insertkey		# calling insertkey function
+				j if2	# jump to if2
+else_if1:		la 	$a0, if1_b	# println("key must be greater than zero");
+				li 	$v0, 4
+				syscall
+				
+if2:			li $s0, 2
+				bne $t4, $s0, if3	# if (choice != 2) goto if3
+				# key= readInt ("Give key to search for: ");
+				la 	$a0, if2_a	# print "Give key to search for: "
+                li 	$v0, 4
+                syscall
+				li 	$v0, 5 	# read an integer
+				syscall
+				move 	$t2, $v0	# $t2 = key
+				li	 $s1, 0
+				move	$a0, $s1	# sending arguments to findkey function
+				move	$a1, $t2
+				jal findkey		# calling findkey function
+				move $t3, $v0	# saves the return value to $t3, $t3=pos
+			
+if_if2:			li $s0, -1
+				bne	$t3, $s0, else_if2	# if ( pos != -1) goto else_if2
+				la 	$a0, if2_b	# println ("Key not in hash table.");
+                li 	$v0, 4
+                syscall
+				j if3	# jump to if3
+
+else_if2:		# println ( "Key value: "+ hash[pos]);
+				la 	$a0, if2_c	# print "Key value: "
+                li 	$v0, 4
+               	syscall
+				mul 	$s1, $t3, 4	
+				lw	$s0, hash($s1)
+				move	$a0, $s0	# print hash[pos]	
+				li 	$v0, 1
+				syscall
+				la 	$a0, CRLF	# change line	
+                li 	$v0, 4
+                syscall
+				
+				# println ( "Table position =  "+ pos);
+				la 	$a0, if2_d	# print "Table position = "
+                li 	$v0, 4
+                syscall
+				move	$a0, $t3	# print pos	
+				li 	$v0, 1
+				syscall 
+				la 	$a0, CRLF	# change line	
+                li 	$v0, 4
+                syscall
+
+if3:			li	 $s0, 3
+				bne	$t4, $s0, if4	# if (choice != 3) goto if4
+				li	 $s1, 0
+				move	$a0, $s1	# sending arguments to displaytable function
+				jal displaytable	# calling displaytable function
+
+if4:			li 	$s0, 4
+				bne $t4, $s0, while	# if (choice != 4) goto while
+				li 	$t5,1	# telos=1;
+
+while:			beqz $t5, do	# if (telos == 0) goto do	
+
+exit:			li	 $v0,10	# exit
+				syscall
+
+insertkey:		addi $sp, $sp, -4	# stack saves the $ra address for our function	
+				sw $ra, 0($sp)
+				jal findkey			# $a0 and $a1 already have the arguments' values, calling findkey function,saves the return value to $v0, position=findkey(hash,k);
+if1_ik:			li $s0, -1
+				beq $v0, $s0, else1_ik	# if ( position == -1 ) goto else1_ik
+				la $a0, I1	# println("Key is already in hash table");
+				li $v0,4
+				syscall 
+				j end_ik	#jump to end_ik
+	
+else1_ik:		bge $t1, $t0, else2_ik	# if (keys >= N) goto else2_ik	
+				li	 $s1, 0
+				move	$a0, $s1	# sending arguments to hashfunction
+				jal hashfunction	# calling hashfunction function,saves the return value to $v0, position=hashfuntion(hash,k);		
+				mul $s1, $v0, 4
+				sw $a1, hash($s1)	# hash[position]=k;
+				addi $t1, $t1, 1	# keys++;	
+				j end_ik	#jump to end_ik
+				
+else2_ik:		la $a0, I2		# println("hash table is full ");	
+				li $v0,4
+				syscall 
+
+end_ik:			lw $ra,0($sp)	 # load the $ra address
+				addi $sp, $sp, 4 			 
+				jr $ra	
+		
+hashfunction:	move	$s1, $a0	# table's address to $s1	
+				rem	$v0, $a1, $t0	# position= k%N;	
+while_hf:		mul 	$s1, $v0, 4
+				lw	$s0, hash($s1)
+				beqz	$s0, end_hf	# if (hash[position]==0) goto end_hf
+				addi 	$v0, $v0, 1	# position++;
+				rem	$v0, $v0 , $t0	# position %= N;
+				j while_hf	#jump to while_hf
+end_hf:			jr	$ra
+		
+findkey:		move	$s1, $a0	# table's address to $s1
+				li	$v0, 0			# int position = 0;	
+				li	$s0, 0			# int i = 0;
+				li	$s2, 0			# found = 0;
+				rem	$v0, $a1, $t0	# position= k%N;
+while_fk:		bge	$s0 ,$t0, if2_fk	# if ( i>=N ) goto if2_fk
+				bnez 	$s2, if2_fk		# if ( found!=0 ) goto if2_fk
+				addi	$s0, $s0, 1		# i++;
+				mul	$s1, $v0, 4
+				lw	$s3, hash($s1)	
+				bne	$s3, $a1, else1_fk	# if ( hash[position]!=k ) goto else1_fk
+				li	 $s2, 1			# found = 1;		
+				j while_fk			# jump to while_fk
+else1_fk:		addi 	$v0, $v0, 1		# position++;
+				rem	$v0, $v0 , $t0		# position %= N;
+				j while_fk			# jump to while_fk
+if2_fk:			li	$s0, 1
+				bne	$s2,$s0 , else2_fk	# if (found !=1) goto else2_fk
+				j end_fk			# jump to end_fk
+
+else2_fk:		li $v0, -1			# return -1
+
+end_fk:			jr	$ra
+		
+		
+displaytable:	move	$s1, $a0	# table's address to $s1	
+				la 	$a0, D1			# println ("\npos key\n")
+                li 	$v0, 4
+                syscall
+				la 	$a0, CRLF		# change line
+                li 	$v0, 4
+                syscall
+		
+				li $s0, 0			# int i = 0;
+for_d:			bge	$s0, $t0, end_for_d	#if i >= N goto end_for_d
+		
+				# print space, 32 is ASCII code for space
+				li $a0, 32
+				li $v0, 11  # syscall number for printing character
+				syscall
+
+				move	$a0, $s0	# print i	
+				li 	$v0, 1
+				syscall
+
+				# print space, 32 is ASCII code for space
+				li $a0, 32
+				li $v0, 11  # syscall number for printing character
+				syscall
+
+				lw	$t6, hash($s1)		
+				move	$a0, $t6	# print hash[i]
+				li 	$v0, 1
+				syscall
+				
+				la 	$a0, CRLF		# change line
+                li 	$v0, 4
+                syscall
+
+				addi	$s0, $s0, 1	#i++
+				addi	$s1, $s1, 4	
+				j for_d
+
+end_for_d:		la 	$a0, CRLF		
+                li 	$v0, 4
+                syscall
+				jr	$ra
+
+
+				.data
+				.align 4
+hash:			.space 36
+Menu:			.asciiz "Menu\n"
+C1:				.asciiz "1. Insert Key\n"
+C2:				.asciiz "2. Find Key\n"
+C3:				.asciiz "3. Display Hash Table\n"
+C4:				.asciiz "4. Exit\n"
+EndMenu:		.asciiz "\nChoice?"  
+if1_a:			.asciiz "Give new key (greater than zero) : "
+if1_b: 			.asciiz "Key must be greater than zero\n"
+if2_a:			.asciiz "Give Key to search for: "
+if2_b:			.asciiz "Key not in hash table.\n"
+if2_c:			.asciiz "Key value = "
+if2_d: 			.asciiz "Table position = "
+I1:				.asciiz "Key is already in hash table.\n"
+I2:				.asciiz "hash table is full \n"
+D1:				.asciiz "\npos key\n"
+CRLF:			.asciiz "\n"
+N:				.word 10
